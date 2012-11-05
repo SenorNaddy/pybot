@@ -1,8 +1,10 @@
+#!/usr/bin/env python
 from twisted.words.protocols import irc
 from twisted.internet import reactor, protocol
 from twisted.python import log
 
 import time, sys
+import datetime, os, re, stat
 
 class MessageLogger:
 	def __init__(self, file):
@@ -17,7 +19,10 @@ class MessageLogger:
 
 class LogBot(irc.IRCClient):
 
-	nickmake = "twistedbot"
+	def __init__(self):
+		self.nickname = "naddybot"
+		self.realname = "naddybot"
+		self.username = "naddybot"
 
 	def connectionMade(self):
 		irc.IRCClient.connectionMade(self)
@@ -44,7 +49,7 @@ class LogBot(irc.IRCClient):
 		self.logger.log("* %s %s" % (user, msg))
 
 	def irc_NICK(self, prefix, params):
-		old_nick = prefix.slit('!')[0]
+		old_nick = prefix.split('!')[0]
 		new_nick = params[0]
 		self.logger.log("%s is now known as %s" % (old_nick, new_nick))
 
@@ -52,14 +57,15 @@ class LogBot(irc.IRCClient):
 		return nickname + '^'
 
 class LogBotFactory(protocol.ClientFactory):
+	protocol = LogBot
 	def __init__(self, channel, filename):
 		self.channel = channel
 		self.filename = filename
-
-	def buildProtocol(self, addr):
-		p = Logbot()
-		p.factory = self
-		return p
+		protocol.factory = self
+#	def buildProtocol(self, addr):
+#		p = Logbot()
+#		p.factory = self
+#		return p
 
 	def ClientConnectionLost(self, connector, reason):
 		connector.connect()
@@ -69,7 +75,7 @@ class LogBotFactory(protocol.ClientFactory):
 		reactor.stop()
 
 if __name__ == '__main__':
-	log.startLoggin(sys.stdout)
+	log.startLogging(sys.stdout)
 	f = LogBotFactory(sys.argv[1], sys.argv[2])
 	reactor.connectTCP("irc.freenode.net",6667, f)
 
